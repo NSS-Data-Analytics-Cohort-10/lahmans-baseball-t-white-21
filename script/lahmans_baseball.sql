@@ -131,13 +131,11 @@ GROUP BY position
 
 SELECT 
 	CONCAT(LEFT(CAST(yearid AS varchar),3),'0s') AS decade,
-	ROUND((SUM(so)/SUM(g)),2) AS av_so_pg
+	ROUND(SUM(so::numeric)/SUM(g::numeric/2),2) AS avg_so_pg
 FROM teams
 GROUP BY decade
 ORDER BY decade
 
-SELECT *
-FROM teams
 
 -- SELECT 
 -- 	CONCAT(LEFT(CAST(yearid AS varchar),3),'0s') AS decade,
@@ -149,38 +147,56 @@ FROM teams
 --now for homeruns
 SELECT 
 	CONCAT(LEFT(CAST(yearid AS varchar),3),'0s') AS decade,
-	AVG(hr/g) AS av_hr_pg
+	AVG(hr::numeric/g::numeric) AS av_hr_pg
 FROM teams
 GROUP BY decade
-ORDER BY av_hr_pg DESC
+ORDER BY decade 
 
---above rounding makes everything 0s ???
+-- vs
+SELECT 
+	CONCAT(LEFT(CAST(yearid AS varchar),3),'0s') AS decade,
+	ROUND(SUM((hr::numeric))/SUM(g::numeric),2) AS av_hr_pg
+FROM teams
+GROUP BY decade
+ORDER BY decade 
+
+
 
 -- 6. Find the player who had the most success stealing bases in 2016, where __success__ is measured as the percentage of stolen base attempts which are successful. (A stolen base attempt results either in a stolen base or being caught stealing.) Consider only players who attempted _at least_ 20 stolen bases.
 
-WITH x AS (
-	SELECT playerid,
-	SUM(sb)+SUM(cs) AS attempts
-	FROM batting
-	GROUP BY playerid
-)
+
 SELECT
+	namefirst,
+	namelast,
 	playerid,
-	(SUM(sb)/SUM(x.attempts))*100 AS success_rate
+	(sb::numeric)/(sb::numeric + cs::numeric)*100 AS success_rate
 FROM batting
-INNER JOIN X
+LEFT JOIN people
 	USING (playerid)
-WHERE attempts >=20
-	AND yearid = 2016
-GROUP BY playerid
+WHERE (sb+cs)>=20
+	AND yearid=2016
+GROUP BY playerid, namefirst,namelast,sb,cs
 ORDER BY success_rate DESC
 
---a: broxtke01
+--a: chris owings?
+
+
 
 -- 7.  From 1970 – 2016, what is the largest number of wins for a team that did not win the world series? What is the smallest number of wins for a team that did win the world series? Doing this will probably result in an unusually small number of wins for a world series champion – determine why this is the case. Then redo your query, excluding the problem year. How often from 1970 – 2016 was it the case that a team with the most wins also won the world series? What percentage of the time?
 
+SELECT 
+	yearid,
+	teamid, 
+	sum(w) AS total_wins,
+	wswin
+FROM teams
+WHERE yearid BETWEEN 1970 AND 2016
+	AND wswin LIKE 'Y'
+GROUP BY yearid, teamid, wswin
+ORDER BY total_wins 
 
-
+--largest wins: 116
+--fewest wins: 63
 
 -- 8. Using the attendance figures from the homegames table, find the teams and parks which had the top 5 average attendance per game in 2016 (where average attendance is defined as total attendance divided by number of games). Only consider parks where there were at least 10 games played. Report the park name, team name, and average attendance. Repeat for the lowest 5 average attendance.
 
