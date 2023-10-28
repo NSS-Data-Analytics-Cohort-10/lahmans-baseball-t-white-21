@@ -147,7 +147,7 @@ ORDER BY decade
 --now for homeruns
 SELECT 
 	CONCAT(LEFT(CAST(yearid AS varchar),3),'0s') AS decade,
-	AVG(hr::numeric/g::numeric) AS av_hr_pg
+	ROUND(AVG(hr::numeric/g::numeric),2) AS av_hr_pg
 FROM teams
 GROUP BY decade
 ORDER BY decade 
@@ -187,19 +187,95 @@ ORDER BY success_rate DESC
 SELECT 
 	yearid,
 	teamid, 
+	SUM(w) AS total_wins,
+	wswin
+FROM teams
+WHERE yearid BETWEEN 1970 AND 2016
+	AND wswin LIKE 'N'
+GROUP BY yearid, teamid, wswin
+ORDER BY total_wins DESC
+
+--largest wins: 116
+--fewest wins: 63. now explore
+
+select yearid, AVG(w) as avg_w
+from teams
+WHERE yearid BETWEEN 1970 AND 2016
+GROUP BY yearid
+ORDER BY avg_w 
+
+--1981 has only 53 avg wins/team/year
+
+SELECT 
+	yearid,
+	teamid, 
 	sum(w) AS total_wins,
 	wswin
 FROM teams
 WHERE yearid BETWEEN 1970 AND 2016
+	AND yearid <> 1981
 	AND wswin LIKE 'Y'
 GROUP BY yearid, teamid, wswin
 ORDER BY total_wins 
 
---largest wins: 116
---fewest wins: 63
+--new answer: 83
+
+
+--last part: How often from 1970 – 2016 was it the case that a team with the most wins also won the world series? What percentage of the time?
+count (max total wins AND  wswins =Y)/total
+
+WITH ww AS (
+	SELECT 
+	yearid,
+	teamid, 
+	max(w) AS max_wins,
+	wswin
+FROM teams
+WHERE yearid BETWEEN 1970 AND 2016
+	AND  wswin LIKE 'Y'
+GROUP BY 
+	yearid, 
+	teamid, 
+	wswin
+	)
+SELECT 
+	t.yearid,
+	t.teamid,
+	COUNT(max_wins)
+FROM teams t
+JOIN ww
+	USING (yearid)
+GROUP BY t.yearid, t.teamid
+
 
 -- 8. Using the attendance figures from the homegames table, find the teams and parks which had the top 5 average attendance per game in 2016 (where average attendance is defined as total attendance divided by number of games). Only consider parks where there were at least 10 games played. Report the park name, team name, and average attendance. Repeat for the lowest 5 average attendance.
 
+SELECT 
+	park_name, 
+	team,
+	SUM(attendance)/SUM(games) AS avg_att_gm
+FROM homegames
+INNER JOIN parks
+	USING (park)
+WHERE year=2016
+	AND games>=10
+GROUP BY team, park_name
+ORDER BY avg_att_gm 
+LIMIT 5
+
+--highest
+-- "Dodger Stadium"	"LAN"	45719
+-- "Busch Stadium III"	"SLN"	42524
+-- "Rogers Centre"	"TOR"	41877
+-- "AT&T Park"	"SFN"	41546
+-- "Wrigley Field"	"CHN"	39906
+
+--lowest
+-- "Tropicana Field"	"TBA"	15878
+-- "Oakland-Alameda County Coliseum"	"OAK"	18784
+-- "Progressive Field"	"CLE"	19650
+-- "Marlins Park"	"MIA"	21405
+-- "U.S. Cellular Field"	"CHA"	21559
 
 -- 9. Which managers have won the TSN Manager of the Year award in both the National League (NL) and the American League (AL)? Give their full name and the teams that they were managing when they won the award.
 
