@@ -223,7 +223,7 @@ ORDER BY total_wins
 
 --last part: How often from 1970 – 2016 was it the case that a team with the most wins also won the world series? What percentage of the time?
 count (max total wins AND  wswins =Y)/total
-
+--below is not right. it's counting everything instead of final cte
 WITH ww AS (
 	SELECT 
 	yearid,
@@ -241,11 +241,11 @@ GROUP BY
 SELECT 
 	t.yearid,
 	t.teamid,
-	COUNT(max_wins)
+	ww.wswin
 FROM teams t
-JOIN ww
+INNER JOIN ww
 	USING (yearid)
-GROUP BY t.yearid, t.teamid
+GROUP BY t.yearid, t.teamid,ww.wswin
 
 
 -- 8. Using the attendance figures from the homegames table, find the teams and parks which had the top 5 average attendance per game in 2016 (where average attendance is defined as total attendance divided by number of games). Only consider parks where there were at least 10 games played. Report the park name, team name, and average attendance. Repeat for the lowest 5 average attendance.
@@ -278,6 +278,89 @@ LIMIT 5
 -- "U.S. Cellular Field"	"CHA"	21559
 
 -- 9. Which managers have won the TSN Manager of the Year award in both the National League (NL) and the American League (AL)? Give their full name and the teams that they were managing when they won the award.
+
+--can't get any of the below to join togetther in one result. try case whens? case when x then NL?
+
+WITH nl AS(
+SELECT 
+	a.playerid AS nl_manager,
+	a.awardid,
+	a.lgid,
+	a.yearid
+--	m.teamid 
+FROM awardsmanagers a
+--LEFT JOIN managers m
+--		USING (playerid)
+WHERE awardid LIKE 'TSN Manager of the Year'
+ 	AND a.lgid LIKE 'NL'
+--	AND a.yearid = m.yearid
+ al AS(
+SELECT 
+	a.playerid AS al_manager,
+	a.awardid,
+	a.lgid,
+	a.yearid
+--	m.teamid 
+FROM awardsmanagers a
+--LEFT JOIN managers m
+--		USING (playerid)
+WHERE awardid LIKE 'TSN Manager of the Year'
+ 	AND a.lgid LIKE 'AL'
+)--	AND a.yearid = m.yearid
+SELECT
+	namefirst,
+	namelast,
+	a.yearid,
+	m.teamid
+FROM awardsmanagers a
+INNER JOIN al
+	USING (playerid)
+INNER JOIN nl
+	USING (playerid)
+LEFT JOIN people p
+	USING (playerid)
+LEFT JOIN managers m
+	using (playerid)
+WHERE a.yearid = m.yearid
+	AND al_manager=nl_manager
+
+
+WITH nl AS(
+SELECT 
+	a.playerid AS nl_manager,
+	a.awardid,
+	a.lgid,
+	a.yearid,
+	m.teamid AS nl_team
+FROM awardsmanagers a
+LEFT JOIN managers m
+		USING (playerid)
+WHERE awardid LIKE 'TSN Manager of the Year'
+ 	AND a.lgid LIKE 'NL'
+	)
+SELECT 
+	al.playerid,
+	p.namefirst,
+	p.namelast,
+	al.lgid,
+	m.teamid AS al_team,
+--	al.yearid AS al_yr,
+	nl.nl_team
+--	nl.yearid AS nl_yr
+FROM awardsmanagers al
+INNER JOIN nl
+	ON al.playerid = nl.nl_manage
+LEFT JOIN people p
+	USING (playerid)
+LEFT JOIN managers m
+	USING (playerid)
+WHERE al.awardid LIKE 'TSN Manager of the Year'
+ 	AND al.lgid LIKE 'AL'
+	AND al.playerid = nl.nl_manager
+--	AND nl.yearid=m.yearid
+--	AND al.yearid=m.yearid
+
+
 
 -- 10. Find all players who hit their career highest number of home runs in 2016. Consider only players who have played in the league for at least 10 years, and who hit at least one home run in 2016. Report the players' first and last names and the number of home runs they hit in 2016.
 
