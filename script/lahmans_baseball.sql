@@ -229,7 +229,9 @@ WITH ww AS (
 	yearid,
 	teamid, 
 	max(w) AS max_wins,
-	wswin
+	wswin,
+	CASE WHEN max(w) AND wsin=Y THEN '1' ELSE '0'
+		END AS count_both
 FROM teams
 WHERE yearid BETWEEN 1970 AND 2016
 	AND  wswin LIKE 'Y'
@@ -241,7 +243,7 @@ GROUP BY
 SELECT 
 	t.yearid,
 	t.teamid,
-	ww.wswin
+	count(ww.max_wins)
 FROM teams t
 INNER JOIN ww
 	USING (yearid)
@@ -279,88 +281,44 @@ LIMIT 5
 
 -- 9. Which managers have won the TSN Manager of the Year award in both the National League (NL) and the American League (AL)? Give their full name and the teams that they were managing when they won the award.
 
---can't get any of the below to join togetther in one result. try case whens? case when x then NL?
-
 WITH nl AS(
 SELECT 
 	a.playerid AS nl_manager,
 	a.awardid,
-	a.lgid,
-	a.yearid
---	m.teamid 
+	a.lgid
 FROM awardsmanagers a
---LEFT JOIN managers m
---		USING (playerid)
 WHERE awardid LIKE 'TSN Manager of the Year'
- 	AND a.lgid LIKE 'NL'
---	AND a.yearid = m.yearid
- al AS(
+ 	AND a.lgid LIKE 'NL'),
+al AS(
 SELECT 
 	a.playerid AS al_manager,
 	a.awardid,
-	a.lgid,
-	a.yearid
---	m.teamid 
+	a.lgid
 FROM awardsmanagers a
---LEFT JOIN managers m
---		USING (playerid)
 WHERE awardid LIKE 'TSN Manager of the Year'
- 	AND a.lgid LIKE 'AL'
-)--	AND a.yearid = m.yearid
+ 	AND a.lgid LIKE 'AL')
 SELECT
-	namefirst,
-	namelast,
-	a.yearid,
-	m.teamid
+	DISTINCT(namefirst || ' '|| namelast) AS manager_name,
+	a.yearid AS year_won,
+	m.teamid AS team_won
 FROM awardsmanagers a
 INNER JOIN al
-	USING (playerid)
+	ON a.playerid = al.al_manager
 INNER JOIN nl
+	ON a.playerid = nl.nl_manager
+INNER JOIN people p
 	USING (playerid)
-LEFT JOIN people p
-	USING (playerid)
-LEFT JOIN managers m
+INNER JOIN managers m
 	using (playerid)
 WHERE a.yearid = m.yearid
 	AND al_manager=nl_manager
 
-
-WITH nl AS(
-SELECT 
-	a.playerid AS nl_manager,
-	a.awardid,
-	a.lgid,
-	a.yearid,
-	m.teamid AS nl_team
-FROM awardsmanagers a
-LEFT JOIN managers m
-		USING (playerid)
-WHERE awardid LIKE 'TSN Manager of the Year'
- 	AND a.lgid LIKE 'NL'
-	)
-SELECT 
-	al.playerid,
-	p.namefirst,
-	p.namelast,
-	al.lgid,
-	m.teamid AS al_team,
---	al.yearid AS al_yr,
-	nl.nl_team
---	nl.yearid AS nl_yr
-FROM awardsmanagers al
-INNER JOIN nl
-	ON al.playerid = nl.nl_manage
-LEFT JOIN people p
-	USING (playerid)
-LEFT JOIN managers m
-	USING (playerid)
-WHERE al.awardid LIKE 'TSN Manager of the Year'
- 	AND al.lgid LIKE 'AL'
-	AND al.playerid = nl.nl_manager
---	AND nl.yearid=m.yearid
---	AND al.yearid=m.yearid
-
-
+-- "Davey Johnson"	1997	"BAL"
+-- "Davey Johnson"	2012	"WAS"
+-- "Jim Leyland"	1988	"PIT"
+-- "Jim Leyland"	1990	"PIT"
+-- "Jim Leyland"	1992	"PIT"
+-- "Jim Leyland"	2006	"DET"
 
 -- 10. Find all players who hit their career highest number of home runs in 2016. Consider only players who have played in the league for at least 10 years, and who hit at least one home run in 2016. Report the players' first and last names and the number of home runs they hit in 2016.
 
