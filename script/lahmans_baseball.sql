@@ -186,13 +186,12 @@ ORDER BY success_rate DESC
 
 SELECT 
 	yearid,
-	teamid, 
-	SUM(w) AS total_wins,
+	max(w) AS total_wins_wsl,
 	wswin
 FROM teams
 WHERE yearid BETWEEN 1970 AND 2016
 	AND wswin LIKE 'N'
-GROUP BY yearid, teamid, wswin
+GROUP BY yearid, wswin
 ORDER BY total_wins DESC
 
 --largest wins: 116
@@ -205,50 +204,24 @@ GROUP BY yearid
 ORDER BY avg_w 
 
 --1981 has only 53 avg wins/team/year
+--exclude 1981 
 
 SELECT 
 	yearid,
-	teamid, 
-	sum(w) AS total_wins,
+	min(w) AS total_wins_wsw,
 	wswin
 FROM teams
 WHERE yearid BETWEEN 1970 AND 2016
 	AND yearid <> 1981
 	AND wswin LIKE 'Y'
-GROUP BY yearid, teamid, wswin
+GROUP BY yearid, wswin
 ORDER BY total_wins 
 
 --new answer: 83
 
 
 --last part: How often from 1970 – 2016 was it the case that a team with the most wins also won the world series? What percentage of the time?
-count (max total wins AND  wswins =Y)/total
---below is not right. it's counting everything instead of final cte
-WITH ww AS (
-	SELECT 
-	yearid,
-	teamid, 
-	max(w) AS max_wins,
-	wswin,
-	CASE WHEN max(w) AND wsin=Y THEN '1' ELSE '0'
-		END AS count_both
-FROM teams
-WHERE yearid BETWEEN 1970 AND 2016
-	AND  wswin LIKE 'Y'
-GROUP BY 
-	yearid, 
-	teamid, 
-	wswin
-	)
-SELECT 
-	t.yearid,
-	t.teamid,
-	count(ww.max_wins)
-FROM teams t
-INNER JOIN ww
-	USING (yearid)
-GROUP BY t.yearid, t.teamid,ww.wswin
-
+AS pct_wsw_max_wins
 
 -- 8. Using the attendance figures from the homegames table, find the teams and parks which had the top 5 average attendance per game in 2016 (where average attendance is defined as total attendance divided by number of games). Only consider parks where there were at least 10 games played. Report the park name, team name, and average attendance. Repeat for the lowest 5 average attendance.
 
@@ -342,6 +315,8 @@ WHERE yearid = 2016
 	AND hr>=1
 	AND tenure >=10
 GROUP BY player
+
+--a: 94 players?
 
 -- **Open-ended questions**
 
