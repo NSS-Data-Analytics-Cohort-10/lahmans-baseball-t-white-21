@@ -221,7 +221,35 @@ ORDER BY total_wins
 
 
 --last part: How often from 1970 – 2016 was it the case that a team with the most wins also won the world series? What percentage of the time?
-AS pct_wsw_max_wins
+WITH n AS(
+SELECT 
+	yearid,
+	max(w) AS total_wins_wsl,
+	wswin
+FROM teams
+WHERE yearid BETWEEN 1970 AND 2016
+	AND wswin LIKE 'N'
+GROUP BY yearid, wswin
+ORDER BY total_wins_wsl DESC
+),
+y AS(
+SELECT 
+	yearid,
+	min(w) AS total_wins_wsw,
+	wswin
+FROM teams
+WHERE yearid BETWEEN 1970 AND 2016
+	AND yearid <> 1981
+	AND wswin LIKE 'Y'
+GROUP BY yearid, wswin
+ORDER BY total_wins_wsw
+)
+SELECT 
+	(SUM(CASE WHEN n.total_wins_wsl::numeric>y.total_wins_wsw::numeric THEN 1 ELSE 0 END))/COUNT(y.total_wins_wsw::numeric) AS pct_wsw_max_wins
+FROM n
+INNER JOIN y
+	USING (yearid)
+
 
 -- 8. Using the attendance figures from the homegames table, find the teams and parks which had the top 5 average attendance per game in 2016 (where average attendance is defined as total attendance divided by number of games). Only consider parks where there were at least 10 games played. Report the park name, team name, and average attendance. Repeat for the lowest 5 average attendance.
 
@@ -261,7 +289,8 @@ SELECT
 	a.lgid
 FROM awardsmanagers a
 WHERE awardid LIKE 'TSN Manager of the Year'
- 	AND a.lgid LIKE 'NL'),
+ 	AND a.lgid LIKE 'NL'
+),
 al AS(
 SELECT 
 	a.playerid AS al_manager,
@@ -269,7 +298,8 @@ SELECT
 	a.lgid
 FROM awardsmanagers a
 WHERE awardid LIKE 'TSN Manager of the Year'
- 	AND a.lgid LIKE 'AL')
+ 	AND a.lgid LIKE 'AL'
+)
 SELECT
 	DISTINCT(namefirst || ' '|| namelast) AS manager_name,
 	a.yearid AS year_won,
@@ -315,6 +345,8 @@ WHERE yearid = 2016
 	AND hr>=1
 	AND tenure >=10
 GROUP BY player
+
+
 
 --a: 94 players?
 
