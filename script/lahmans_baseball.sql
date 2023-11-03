@@ -192,10 +192,10 @@ FROM teams
 WHERE yearid BETWEEN 1970 AND 2016
 	AND wswin LIKE 'N'
 GROUP BY yearid, wswin
-ORDER BY total_wins DESC
+ORDER BY total_wins_wsl DESC
 
 --largest wins: 116
---fewest wins: 63. now explore
+--fewest wins ws-Y: 63. now explore
 
 select yearid, AVG(w) as avg_w
 from teams
@@ -245,11 +245,12 @@ GROUP BY yearid, wswin
 ORDER BY total_wins_wsw
 )
 SELECT 
-	(SUM(CASE WHEN n.total_wins_wsl::numeric>y.total_wins_wsw::numeric THEN 1 ELSE 0 END))/COUNT(y.total_wins_wsw::numeric) AS pct_wsw_max_wins
+	((SUM(CASE WHEN n.total_wins_wsl::numeric>y.total_wins_wsw::numeric THEN 1.0 ELSE 0 END))/COUNT(y.total_wins_wsw::numeric)) *100 AS pct_wsw_max_wins
 FROM n
 INNER JOIN y
 	USING (yearid)
 
+--a: 73.3%
 
 -- 8. Using the attendance figures from the homegames table, find the teams and parks which had the top 5 average attendance per game in 2016 (where average attendance is defined as total attendance divided by number of games). Only consider parks where there were at least 10 games played. Report the park name, team name, and average attendance. Repeat for the lowest 5 average attendance.
 
@@ -286,7 +287,8 @@ WITH nl AS(
 SELECT 
 	a.playerid AS nl_manager,
 	a.awardid,
-	a.lgid
+	a.lgid,
+	a.yearid
 FROM awardsmanagers a
 WHERE awardid LIKE 'TSN Manager of the Year'
  	AND a.lgid LIKE 'NL'
@@ -295,10 +297,12 @@ al AS(
 SELECT 
 	a.playerid AS al_manager,
 	a.awardid,
-	a.lgid
+	a.lgid,
+	a.yearid
 FROM awardsmanagers a
 WHERE awardid LIKE 'TSN Manager of the Year'
  	AND a.lgid LIKE 'AL'
+	ORDER BY yearid
 )
 SELECT
 	DISTINCT(namefirst || ' '|| namelast) AS manager_name,
@@ -313,8 +317,9 @@ INNER JOIN people p
 	USING (playerid)
 INNER JOIN managers m
 	using (playerid)
-WHERE a.yearid = m.yearid
-	AND al_manager=nl_manager
+WHERE al_manager=nl_manager
+	AND a.yearid = m.yearid
+
 
 -- "Davey Johnson"	1997	"BAL"
 -- "Davey Johnson"	2012	"WAS"
